@@ -3,6 +3,14 @@ import os, os.path
 from datetime import datetime
 import requests
 import time
+from pymongo import MongoClient
+import db_config
+
+client = MongoClient(db_config.mongo_connection_string)
+db = client.get_database('homework_db')
+print_info_collection = db.print_info
+
+
 #/home/clay/Programs/homework/json_files
 pdf_count = 0
 pdf_dir_path = os.path.join(os.getcwd(), "press_proofs")
@@ -27,9 +35,9 @@ for filename in os.listdir(usr_input_path):
             pdf_file = requests.get(pdf_url)
             open(os.path.join(pdf_dir_path, "pdf" + str(pdf_count)),'wb').write(pdf_file.content)
             pdf_count += 1
+            print_info_collection.insert_one(json_in_python)
             #TODO: upload json_object to database
         except ValueError as e:
-            print()
             print(filename + " is not in valid .json format")
             err_f = open(err_file_path, 'a')
             current_time = datetime.now().strftime("%H:%M:%S")
@@ -44,10 +52,10 @@ for filename in os.listdir(usr_input_path):
 
 
 print("Number of files is " + str(num_files_in_json_dir))
-while true: #Maybe use watchdog?  Maybe use threading (Check bookmark blog)
+while True: #Maybe use watchdog?  Maybe use threading (Check bookmark blog)
     if num_files_in_json_dir != len([name for name in os.listdir(usr_input_path)]):
         for filename in os.listdir(usr_input_path): 
-            if not already_submitted_files[filename]: #This might give an error since i'm not sure what it gives if the key doesn't exist
+            if not filename in already_submitted_files.keys(): #This might give an error since i'm not sure what it gives if the key doesn't exist
                 already_submitted_files[filename] = True
                 if filename.endswith(".json"):
                     f = open(os.path.join(usr_input_path, filename),'r')
@@ -61,9 +69,9 @@ while true: #Maybe use watchdog?  Maybe use threading (Check bookmark blog)
 
                         open(os.path.join(pdf_dir_path, "pdf" + str(pdf_count)),'wb').write(pdf_file.content)
                         pdf_count += 1
+                        print_info_collection.insert_one(json_in_python)
                         #TODO: upload json_object to database
                     except ValueError as e:
-                        print()
                         print(filename + " is not in valid .json format")
                         err_f= open(err_file_path, 'a')
                         current_time = datetime.now().strftime("%H:%M:%S")
@@ -90,16 +98,16 @@ while true: #Maybe use watchdog?  Maybe use threading (Check bookmark blog)
 
 
 #TODO
-#actually upload the JSON objects to a database.  I'm still not sure if i should use noSQL or SQL databases though.
 #Make the event listener for a change in number of files more CPU efficient.  Python has a "Watchdog" class which might be worth looking into, as well as threading (Check your bookmarks)
 #Make the program more modular.  See what sections can be their own functions, its to garbled right now.
 #Make a seperate file holding information about which files have already been scanned in, that way if you close and restart the program it doesn't 
-#   auto push already uploaded files to the database
+#auto push already uploaded files to the database
 #Add some lines of code to create directories and files if they don't already exist, and to keep them if they already do. (Such as the PDF directory and the err_log file.)
-
-
+#Add a folder to my gitignore which contains sensitive database information
+#Check with Andrew and see if I should make each ID unique (Right now it will take any ID to the database and not treat it as a unique identifier)
 
 #toDONE
+#actually upload the JSON objects to a database.  I'm still not sure if i should use noSQL or SQL databases though. (I ended up using MongoDB Atlas because its free and I am more familiar with it)
 #Get the directory to track from the usr
 #scan and upload all files already existing in the json_directory to the database
 #Save all existing json files "press_proof" PDF to a folder

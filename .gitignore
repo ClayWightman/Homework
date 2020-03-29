@@ -1,3 +1,5 @@
 /error_log.txt
 /json_files
 /press_proofs
+/db_config.py
+/__pycache__
