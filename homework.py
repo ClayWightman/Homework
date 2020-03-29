@@ -7,6 +7,13 @@ from pymongo import MongoClient
 import db_config
 
 
+
+
+
+
+
+
+
 #/home/clay/Programs/homework/json_files
 client = MongoClient(db_config.mongo_connection_string)
 db = client.get_database('homework_db')
