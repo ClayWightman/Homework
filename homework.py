@@ -3,26 +3,37 @@ import os, os.path
 from datetime import datetime
 import requests
 import time
-from pymongo import MongoClient
+import mysql.connector
 import db_config
-
-
-
-
-
-
-
-
+#Only need to connect if actually adding to server
+mydb = mysql.connector.connect(
+    host = db_config.host,
+    user = db_config.user,
+    password = db_config.password,
+    database = db_config.database
+)
+mycursor = mydb.cursor()
 
 #/home/clay/Programs/homework/json_files
-client = MongoClient(db_config.mongo_connection_string)
-db = client.get_database('homework_db')
-print_info_collection = db.print_info
 pdf_count = 0
 pdf_dir_path = os.path.join(os.getcwd(), "press_proofs")
 err_file_path = os.path.join(os.getcwd(), "error_log.txt")
 already_submitted_files = {}#dictionary to keep track of files already scanned.
 #======Gets a valid path to the directory from the user======
+
+def insert_in_database(json_dict, mycursor, mydb):
+    #Well now i know, use '%s' for values which are strings and %s (without quotation marks) for integers.  (youve gotta be kidding me)  I'll double check this with a clean example because w3schools is showing something different.
+    sql = "INSERT INTO metadata (id,size,object,imb_code,priority,mail_sort,mail_type,press_proof,file_created_at) "\
+        "VALUES ('%s','%s','%s','%s','%s','%s','%s','%s','%s')"\
+             %(json_dict['id'],json_dict['size'],json_dict['object'],json_dict['imb_code'],\
+                 json_dict['priority'],json_dict['mail_sort'],json_dict['mail_type'],json_dict['press_proof'],json_dict['file_created_at'])
+             #Spent way too long trying to get string formatter %s to work.  Still not sure why it wouldn't.  Use this instead.
+    print(sql)
+    mycursor.execute(sql)
+    mydb.commit()
+    print("info inserted correctly")
+    print(mycursor.rowcount, "record inserted")
+
 def create_pdf_dir(base_path):
     if not os.path.exists(pdf_dir_path):
         os.mkdir(pdf_dir_path)
@@ -30,7 +41,7 @@ def create_pdf_dir(base_path):
 def get_json_path():
     path = input("Please enter the path of the directory you wish to track: \n")
     while not os.path.isdir(path):
-        path = input("I could not find that directory, please try again")
+        path = input("I could not find that directory, please try again\n")
     return path
 
 def is_valid_json_format(file):
@@ -68,7 +79,8 @@ for filename in os.listdir(usr_input_path):
         if is_valid_json_format(file_data):
             json_data = json.loads(file_data)
             print(filename + " is in a valid .json format")
-            print_info_collection.insert_one(json_data)#Put in database
+            #Put info into in database
+            insert_in_database(json_data,mycursor,mydb)
             if is_valid_pdf_url(json_data["press_proof"]):
                 download_pdf(json_data["press_proof"], json_data['id'])#download PDF
             else:
@@ -90,6 +102,9 @@ for filename in os.listdir(usr_input_path):
         current_time = datetime.now().strftime("%H:%M:%S")
         err_f.write(current_time + ":  " + filename + " does not have the proper .json file extension\n")
 
+"""
+This second block of code is for files which are added while this program is running
+"""
 
 print("Number of files is " + str(num_files_in_json_dir))
 while True: #Maybe use watchdog?  Maybe use threading (Check bookmark blog)
@@ -103,7 +118,7 @@ while True: #Maybe use watchdog?  Maybe use threading (Check bookmark blog)
                     if is_valid_json_format(file_data):
                         json_data = json.loads(file_data)
                         print(filename + " is in a valid .json format")
-                        print_info_collection.insert_one(json_data)
+                        #Put Info into database
                         if is_valid_pdf_url(json_data["press_proof"]):
                             download_pdf(json_data["press_proof"], json_data['id'])
                         else:
@@ -139,6 +154,8 @@ while True: #Maybe use watchdog?  Maybe use threading (Check bookmark blog)
 
 
 #TODO
+#Make sure your code is protected from sql injection?  (Maybe since JSON is likey user created?)
+#Probably make the database relational for nested .json objects
 #Change the database to a SQL database
 #Test this code on a windows machine.  There might be an unexpected area where my paths don't work as expected (Thanks to windows dang backslashes!)
 #Make the event listener for a change in number of files more CPU efficient.  Python has a "Watchdog" class which might be worth looking into, as well as threading (Check your bookmarks)
