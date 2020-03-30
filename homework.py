@@ -1,14 +1,10 @@
-#/home/clay/Programs/homework/json_files
+#!/usr/bin/env python3
 import json                     #for converting json objects into python dicts
 import os, os.path              #for file naviagation
 from datetime import datetime   #for the error logger
 import requests                 #for downloading the PDF's by their URL
 import time                     #for implementing "busy wait" to cut down on CPU overhead
 import mysql.connector          #for connecting to a mySQL database
-import db_config                #my own personal file which includes database setup information.  This is not necessary for other users.
-
-
-
 
 
 #Should only be used if table does not already exist.  Included mainly to show the datatypes I used for each json object as well as the structure of my table
@@ -64,20 +60,16 @@ def is_valid_pdf_url(pdf_url):
 def download_pdf(pdf_url, pdf_id):
     pdf_file = requests.get(pdf_url)
     open(os.path.join(pdf_dir_path, pdf_id),'wb').write(pdf_file.content)
-
-
-
-
+    
 
 #database setup information.
 mydb = mysql.connector.connect(
-    host = db_config.host,
-    user = db_config.user,
-    password = db_config.password,
-    database = db_config.database
+    host = 'your_hostname',
+    user = 'your_username',
+    password = 'your_password',
+    database = 'your_database'
 )
 mycursor = mydb.cursor()
-
 
 #Initialize variables
 pdf_count = 0
@@ -156,49 +148,4 @@ while True:
 
 
 
-
-
-
-
-
-
-
-
-
-
-#TODO
-
-#Get memory and space complexity of your program and put it in a comment
-#Test this code on a windows machine.  There might be an unexpected area where my paths don't work as expected (Thanks to windows dang backslashes!)
-
-
-
-#Didnt Do
-#Make a seperate file holding information about which files have already been scanned in, that way if you close and restart the program it doesn't 
-#   auto push already uploaded files to the database
-
-
-#toDONE
-#Test the int values in the database to make sure that they are comparable (> or <).  I'm almost certain they already are, but just to be sure...
-#Change the database to a SQL database
-#Probably make the database relational for nested .json objects
-#Change '%s' to %s for int variables in database
-#I am not creating the table in the database in this code for two reasons
-#   1)I am assuming the table will already exist in the database
-#   2)Because of the limited number of test .json files I have I do not want to create a table with ID set to primary key since it will make me unable to upload files
-#Add a folder to my gitignore which contains sensitive database information
-#Make the program more modular.  See what sections can be their own functions, its too garbled right now.
-#actually upload the JSON objects to a database.  I'm still not sure if i should use noSQL or SQL databases though. (I ended up using MongoDB Atlas because its free and I am more familiar with it)
-#Get the directory to track from the usr
-#scan and upload all files already existing in the json_directory to the database
-#Save all existing json files "press_proof" PDF to a folder
-#monitor the directory for any changes (Sort of done, not great but right now im using "while with sleep" as a temp fix)
-#if any changes are made to the directory add all new files to the database.  (Should i remove entries that are removed from the directory?)
-#Add any new "press_proof" PDF's to a folder
-#Add some lines of code to create directories and files if they don't already exist, and to keep them if they already do. (Such as the PDF directory and the err_log file.)
-
-#Notes
-"""
-Threading wont work as im not waiting for a calculation to finish, i'm waiting for a change to be made to a directory
-I think this could be done with the 'watchdog' python module, but I believe that only works on linux.  I might need to make this script OS specific.
-"""
+#time complexity O(n)
